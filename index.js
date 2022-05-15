@@ -3,24 +3,24 @@ const http = require('http');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const logger = require('morgan');
-const socketIO = require('socket.io');
+const { Server } = require('socket.io');
 const mongoAdapter = require('socket.io-adapter-mongo');
 const { mongoConnectionString } = require('./config');
 const mongoose = require('mongoose');
 const app = express();
 const path = require('path');
+
 var server = http.createServer(app);
-const io = socketIO(server);
+const io = new Server(server,{
+	cors: { 
+		origin: 'http://localhost:3000',
+		methods: ["GET","POST","PUT","DELETE"]
+	}
+});
 
 io.on('connection', socket => {
-	console.log('we have a new connection!');
-
-	socket.on('test', ({ name }) => {
-		console.log(name);
-	});
-
-	socket.on('disconnect', () => {
-		console.log('User had left!');
+	socket.on('sendData', (data) => {
+		socket.broadcast.emit("receiveData", data);
 	});
 });
 
@@ -46,6 +46,7 @@ app.use('/', require('./routes/index'));
 const usersRoutes = require('./routes/Users');
 app.use('/users', usersRoutes);
 const api = require('./routes/api');
+const { send } = require('process');
 app.use('/api', api);
 
 // connection
@@ -68,4 +69,4 @@ mongoose.connect(
 
 // api
 const port = process.env.PORT || 8080;
-app.listen(port, () => console.log('Express server is running at port', port));
+server.listen(port, () => console.log('Express server is running at port', port));
